@@ -4,7 +4,7 @@
 ## Overview
 This tutorial explains at a basic level how to use ROS2 and PX4 in order to control a simulated UAV's velocity with keyboard controls. The goal is to create a simple example that a complete beginner can follow and understand, even with no ROS2 or PX4 experience.
 
-This repo is a derivative of Jaeyoung Lim's Offboard example
+This repo is a derivative of Jaeyoung Lim and ARK-Electronics's Offboard example
 
 https://github.com/Jaeyoung-Lim/px4-offboard
 
@@ -101,7 +101,7 @@ git clone https://github.com/PX4/px4_msgs.git -b release/1.14
 Once again be sure you are still in the src directory of your workspace. Run this code to clone in our example package
 
 ```
-git clone https://github.com/ARK-Electronics/ROS2_PX4_Offboard_Example.git
+git clone [https://github.com/huichangs/ROS2_PX4_position_control_example.git]
 ```
 
 Run this code to clone the repo
@@ -130,7 +130,7 @@ As mentioned in Jaeyoung Lim's [example](https://github.com/Jaeyoung-Lim/px4-off
 
 After this runs, we should never need to build px4_msgs again. However, we will need to build px4_offboard every time we make changes to the code. To do this, and save time, we can run
 ```
-colcon build --packages-select px4_offboard
+colcon build --packages-select position_control
 ```
 
 If you tried to run our code now, it would not work. This is because we need to source our current workspace. This is always done after a build. To do this, be sure you are in the src directory, and then run this code
@@ -148,7 +148,7 @@ This example has been designed to run from one launch file that will start all t
 Run this code to start the example
 
 ```
-ros2 launch px4_offboard offboard_velocity_control.launch.py
+ros2 launch position_control offboard_velocity_control.launch.py
 ```
 
 This will run numerous things. In no particular order, it will run:
@@ -183,14 +183,4 @@ When closing the simulation, it is very tempting to just close the terminal wind
 
  ## Explanation of processes.py
  This code runs each set of bash commands in a new tab of a gnome terminal window. It assumes that your PX4 installation is accessible from your root directory, and it is using the gz_x500 simulation. There is no current implementation to change these commands when running the launch file, however you can modify the command string within processes.py to change these values to what you need.
-
- If line 17 of processes.py were uncommented
-```
-17     # "cd ~/QGroundControl && ./QGroundControl.AppImage"
-```
-then QGroundControl would run in a new tab of the terminal window and the QGroundControl GUI would then open up. This is commented out by default because it is not necessary for the simulation to run, but it is useful for debugging, and is a simple example showing how to add another command to the launch file.
-
-
-## Questions
-Join the ARK Electronics Discord [here](https://discord.gg/TDJzJxUMRX) for more help and to stay up to date on our projects.
 
