@@ -9,14 +9,15 @@ import time
 commands = [
     # Run the Micro XRCE-DDS Agent
     "MicroXRCEAgent udp4 -p 8888",
+    
+    # Run gz bridge to get sensor information
+    "ros2 run ros_gz_image image_bridge /depth_camera /depth_camera_1 /depth_camera_2",
 
     # Run the PX4 SITL simulation
     # "cd ~/PX4-Autopilot && make px4_sitl gz_x500"
-
-    
-    "cd ~/PX4-Autopilot && PX4_SYS_AUTOSTART=4001 PX4_GZ_WORLD=baylands PX4_SIM_MODEL=gz_x500_depth ./build/px4_sitl_default/bin/px4 -i 1",
-    "cd ~/PX4-Autopilot && PX4_SYS_AUTOSTART=4001 PX4_GZ_WORLD=baylands PX4_GZ_MODEL_POSE='0,-2' PX4_SIM_MODEL=gz_x500_depth ./build/px4_sitl_default/bin/px4 -i 2",
-    "cd ~/PX4-Autopilot && PX4_SYS_AUTOSTART=4001 PX4_GZ_WORLD=baylands PX4_GZ_MODEL_POSE='0,2' PX4_SIM_MODEL=gz_x500_depth ./build/px4_sitl_default/bin/px4 -i 3"
+    "cd ~/PX4-Autopilot && PX4_SYS_AUTOSTART=4002 PX4_GZ_WORLD=baylands PX4_SIM_MODEL=gz_x500_depth ./build/px4_sitl_default/bin/px4 -i 1",
+    "cd ~/PX4-Autopilot && PX4_SYS_AUTOSTART=4002 PX4_GZ_WORLD=baylands PX4_GZ_MODEL_POSE='0,-2' PX4_SIM_MODEL=gz_x500_depth_1 ./build/px4_sitl_default/bin/px4 -i 2",
+    "cd ~/PX4-Autopilot && PX4_SYS_AUTOSTART=4002 PX4_GZ_WORLD=baylands PX4_GZ_MODEL_POSE='0,2' PX4_SIM_MODEL=gz_x500_depth_2 ./build/px4_sitl_default/bin/px4 -i 3"
 ]
 
 # Loop through each command in the list

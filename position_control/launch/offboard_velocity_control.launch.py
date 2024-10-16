@@ -53,13 +53,13 @@ def generate_launch_description():
             executable='visualizer',
             name='visualizer'
         ),
-        Node(
-            package='position_control',
-            namespace='position_control',
-            executable='processes',
-            name='processes',
-            prefix='gnome-terminal --'
-        ),
+        # Node(
+        #     package='position_control',
+        #     namespace='position_control',
+        #     executable='processes',
+        #     name='processes',
+        #     prefix='gnome-terminal --'
+        # ),
         Node(
             package='position_control',
             namespace='position_control',
@@ -85,6 +85,12 @@ def generate_launch_description():
             executable='position_log',
             name='position_log',
             prefix='gnome-terminal --'
+        ),
+        Node(
+            package='position_control',
+            namespace='position_control',
+            executable='uav_camera',
+            name='uav_camera'
         ),
         Node(
             package='rviz2',

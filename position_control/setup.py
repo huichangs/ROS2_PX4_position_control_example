@@ -31,9 +31,10 @@ setup(
                 'visualizer = position_control.visualizer:main',
                 'position_control = position_control.position_control:main',
                 'control = position_control.control:main',
-                'processes = position_control.processes:main',
+                # 'processes = position_control.processes:main',
                 'position_log = position_control.position_log:main',
-                'slave_drone_control = position_control.slave_drone_control:main'
+                'slave_drone_control = position_control.slave_drone_control:main',
+                'uav_camera = position_control.uav_camera:main'
         ],
     },
 )
