@@ -19,6 +19,7 @@ I've taken these example and added some functionality.
 * px4_msgs
 * Ubuntu 22.04
 * Python 3.10
+* gazebo garden
 
 
 ## Setup Steps
