@@ -2,7 +2,7 @@
 # ROS2_PX4_Offboard_Example
 
 ## Overview
-This tutorial explains at a basic level how to use ROS2 and PX4 in order to control a simulated UAV's velocity with keyboard controls. The goal is to create a simple example that a complete beginner can follow and understand, even with no ROS2 or PX4 experience.
+Multi-uav simulation with camera using PX4 and ROS2
 
 This repo is a derivative of Jaeyoung Lim and ARK-Electronics's Offboard example
 
@@ -50,7 +50,7 @@ Install Python dependencies as mentioned in the [PX4 Docs](https://docs.px4.io/m
 pip3 install --user -U empy pyros-genmsg setuptools
 ```
 
-I also found that without these packages installed Gazebo has issues loading
+Additionally, if you do not install these packages, you will have problems loading Gazebo.
 
 ```
 pip3 install kconfiglib
@@ -86,17 +86,13 @@ mkdir -p ~/position_control_example/src
 cd ~/position_control_example/src
 ```
 
-*position_control_example* is just a name I chose for the workspace. You can name it whatever you want. But after we run *colcon build* you might have issues changing your workspace name so choose wisely.
-
-We are now in the src directory of our workspace. This is where ROS2 packages go, and is where we will clone in our two repos.
-
 ### Clone in Packages
 We first will need the px4_msgs package. Our ROS2 nodes will rely on the message definitions in this package in order to communicate with PX4. Read [here](https://docs.px4.io/main/en/ros/ros2_comm.html#overview:~:text=ROS%202%20applications,different%20PX4%20releases) for more information.
 
 Be sure you're in the src directory of your workspace and then run this code to clone in the px4_msgs repo
 
 ```
-git clone https://github.com/PX4/px4_msgs.git -b release/1.14
+git clone https://github.com/PX4/px4_msgs.git
 ```
 
 Once again be sure you are still in the src directory of your workspace. Run this code to clone in our example package
@@ -110,7 +106,7 @@ Run this code to clone the repo
 
 
 ### Building the Workspace
-The two packages in this workspace are px4_msgs and px4_offboard. px4_offboard is a ROS2 package that contains the code for the offboard control node that we will implement. It lives inside the ROS2_PX4_Offboard_Example directory.
+The two packages in this workspace are px4_msgs and position_control.
 
 Before we build these two packages, we need to source our ROS2 installation. Run this code to do that
 
@@ -123,13 +119,12 @@ This will need to be run in every terminal that wants to run ROS2 commands. An e
 To build these two packages, you must be in workspace directory not in src, run this code to change directory from src to one step back i.e. root of your workspace and build the packages
 
 ```
-cd ..
 colcon build
 ```
 As mentioned in Jaeyoung Lim's [example](https://github.com/Jaeyoung-Lim/px4-offboard/blob/master/doc/ROS2_PX4_Offboard_Tutorial.md) you will get some warnings about setup.py but as long as there are no errors, you should be good to go.
 
 
-After this runs, we should never need to build px4_msgs again. However, we will need to build px4_offboard every time we make changes to the code. To do this, and save time, we can run
+After this runs, we should never need to build px4_msgs again. However, we will need to build position_control every time we make changes to the code. To do this, and save time, we can run
 ```
 colcon build --packages-select position_control
 ```
@@ -149,7 +144,7 @@ This example has been designed to run from one launch file that will start all t
 Run this code to start the example
 
 ```
-ros2 launch position_control offboard_velocity_control.launch.py
+ros2 launch position_control offboard_position_control.launch.py
 ```
 
 This will run numerous things. In no particular order, it will run:
