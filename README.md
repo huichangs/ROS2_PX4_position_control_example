@@ -98,7 +98,7 @@ git clone https://github.com/PX4/px4_msgs.git
 Once again be sure you are still in the src directory of your workspace. Run this code to clone in our example package
 
 ```
-git clone [https://github.com/huichangs/ROS2_PX4_position_control_example.git]
+git clone https://github.com/huichangs/ROS2_PX4_position_control_example.git
 ```
 
 Run this code to clone the repo
