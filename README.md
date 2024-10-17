@@ -27,7 +27,7 @@ I've taken these example and added some functionality.
 ### Install PX4 Autopilot
 To [Install PX4](https://docs.px4.io/main/en/ros2/user_guide.html) run this code 
 ```
-git clone https://github.com/PX4/PX4-Autopilot.git --recursive -b release/1.14
+git clone https://github.com/PX4/PX4-Autopilot.git --recursive
 ```
 
 Run this script in a bash shell to install everything
