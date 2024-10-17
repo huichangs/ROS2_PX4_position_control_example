@@ -11,7 +11,7 @@ commands = [
     "MicroXRCEAgent udp4 -p 8888",
     
     # Run gz bridge to get sensor information
-    "ros2 run ros_gz_image image_bridge /depth_camera /depth_camera_1 /depth_camera_2",
+    "ros2 run ros_gz_image image_bridge /depth_camera /depth_camera_1 /depth_camera_2 /camera /camera_1 /camera_2",
 
     # Run the PX4 SITL simulation
     # "cd ~/PX4-Autopilot && make px4_sitl gz_x500"
