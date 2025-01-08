@@ -15,6 +15,8 @@ from px4_msgs.msg import TrajectorySetpoint
 from px4_msgs.msg import VehicleStatus
 from px4_msgs.msg import VehicleAttitude
 from px4_msgs.msg import VehicleGlobalPosition
+from px4_msgs.msg import VehicleLocalPosition
+from px4_msgs.msg import VehicleOdometry
 from geometry_msgs.msg import Twist, Vector3, Point
 from std_msgs.msg import Bool
 
@@ -42,6 +44,12 @@ class SlaveDroneControl(Node):
         self.command_master_position_y = 0.0
         self.command_master_position_z = 3.0
         self.command_master_yaw = 0.0
+        
+        self.master_curr_position_x = 0.0
+        self.master_curr_position_y = 0.0
+        self.master_curr_position_z = 0.0
+        self.master_local_yaw = 0.0
+        self.master_true_yaw = 0.0
 
         self.slave_nav_state = {}
         self.slave_arm_state = {}
@@ -77,6 +85,11 @@ class SlaveDroneControl(Node):
             self.master_attitude_callback,
             qos_profile
         )
+        self.master_local_position_sub = self.create_subscription(
+            VehicleOdometry,
+            '/px4_1/fmu/out/vehicle_odometry',
+            self.master_vehicle_odometry_callback,
+            qos_profile)
         
         #create command subscriptions
         self.offboard_position_sub = self.create_subscription(
@@ -131,13 +144,17 @@ class SlaveDroneControl(Node):
         self.master_curr_lon = msg.lon
         self.master_curr_alt = msg.alt
     
+    def master_vehicle_odometry_callback(self, msg):
+        self.master_curr_position_x = msg.position[0]
+        self.master_curr_position_y = msg.position[1]
+        self.master_curr_position_z = msg.position[2]
+    
     def master_attitude_callback(self, msg):
         orientation_q = msg.q
 
         #trueYaw is the drones current yaw value
         self.master_true_yaw = -(np.arctan2(2.0*(orientation_q[0]*orientation_q[3] + orientation_q[1]*orientation_q[2]), 
                             1.0 - 2.0*(orientation_q[2]*orientation_q[2] + orientation_q[3]*orientation_q[3])))
-    
 
     def slave_vehicle_status_callback(self, msg, slave_id: int):
         self.slave_nav_state[slave_id] = msg.nav_state
@@ -168,24 +185,24 @@ class SlaveDroneControl(Node):
     
     # slave drone control
     def slave_drone_control_1(self):
-        target_angular = self.command_master_yaw + self.slave_offset[2]["angular"]
+        target_angular = self.master_true_yaw + self.slave_offset[2]["angular"]
         
         if target_angular > 3.14:
             target_angular -= 2 * 3.14
         elif target_angular < -3.14:
             target_angular += 2 * 3.14
         
-        slave_target_x = self.command_master_position_x + self.slave_offset[2]["start_position_x"] + self.target_distance * math.cos(target_angular)
-        slave_target_y = self.command_master_position_y + self.slave_offset[2]["start_position_y"] + self.target_distance * math.sin(target_angular)
+        slave_target_x = self.master_curr_position_x - self.slave_offset[2]["start_position_x"] + self.target_distance * math.cos(target_angular)
+        slave_target_y = self.master_curr_position_y + self.slave_offset[2]["start_position_y"] + self.target_distance * math.sin(target_angular)
         
         trajectory_msg = TrajectorySetpoint()
         trajectory_msg.timestamp = int(Clock().now().nanoseconds / 1000)
         trajectory_msg.velocity[0] = float("nan")
         trajectory_msg.velocity[1] = float("nan")
         trajectory_msg.velocity[2] = float("nan")
-        trajectory_msg.position[0] = -slave_target_x
+        trajectory_msg.position[0] = slave_target_x
         trajectory_msg.position[1] = slave_target_y
-        trajectory_msg.position[2] = -self.command_master_position_z
+        trajectory_msg.position[2] = self.master_curr_position_z
         trajectory_msg.acceleration[0] = float("nan")
         trajectory_msg.acceleration[1] = float("nan")
         trajectory_msg.acceleration[2] = float("nan")
@@ -194,24 +211,24 @@ class SlaveDroneControl(Node):
         self.slave_trajectory_publisher[2].publish(trajectory_msg)
     
     def slave_drone_control_2(self):
-        target_angular = self.command_master_yaw + self.slave_offset[3]["angular"]
+        target_angular = self.master_true_yaw + self.slave_offset[3]["angular"]
         
         if target_angular > 3.14:
             target_angular -= 2 * 3.14
         elif target_angular < -3.14:
             target_angular += 2 * 3.14
         
-        slave_target_x = self.command_master_position_x + self.slave_offset[3]["start_position_x"] + self.target_distance * math.cos(target_angular)
-        slave_target_y = self.command_master_position_y + self.slave_offset[3]["start_position_y"] + self.target_distance * math.sin(target_angular)
+        slave_target_x = self.master_curr_position_x - self.slave_offset[3]["start_position_x"] + self.target_distance * math.cos(target_angular)
+        slave_target_y = self.master_curr_position_y + self.slave_offset[3]["start_position_y"] + self.target_distance * math.sin(target_angular)
         
         trajectory_msg = TrajectorySetpoint()
         trajectory_msg.timestamp = int(Clock().now().nanoseconds / 1000)
         trajectory_msg.velocity[0] = float("nan")
         trajectory_msg.velocity[1] = float("nan")
         trajectory_msg.velocity[2] = float("nan")
-        trajectory_msg.position[0] = -slave_target_x
+        trajectory_msg.position[0] = slave_target_x
         trajectory_msg.position[1] = slave_target_y
-        trajectory_msg.position[2] = -self.command_master_position_z
+        trajectory_msg.position[2] = self.master_curr_position_z
         trajectory_msg.acceleration[0] = float("nan")
         trajectory_msg.acceleration[1] = float("nan")
         trajectory_msg.acceleration[2] = float("nan")

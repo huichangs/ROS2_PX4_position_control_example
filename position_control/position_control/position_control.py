@@ -38,6 +38,7 @@ __contact__ = "braden@arkelectron.com"
 import rclpy
 from rclpy.node import Node
 import numpy as np
+import math
 from rclpy.clock import Clock
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 
@@ -48,8 +49,8 @@ from px4_msgs.msg import VehicleAttitude
 from px4_msgs.msg import VehicleCommand
 from px4_msgs.msg import VehicleOdometry
 from px4_msgs.msg import VehicleGlobalPosition
+from px4_msgs.msg import VehicleLocalPosition
 from geometry_msgs.msg import Twist, Vector3, Point
-from math import pi
 from std_msgs.msg import Bool
 
 
@@ -88,16 +89,22 @@ class OffboardControl(Node):
             self.offboard_position_callback,
             qos_profile)
         
-        self.offboard_angular_sub = self.create_subscription(
-            Twist,
-            '/offboard_angular_cmd',
-            self.offboard_angular_callback,
-            qos_profile)   
+        # self.offboard_angular_sub = self.create_subscription(
+        #     Twist,
+        #     '/offboard_angular_cmd',
+        #     self.offboard_angular_callback,
+        #     qos_profile)   
         
         self.my_bool_sub = self.create_subscription(
             Bool,
             '/arm_message',
             self.arm_message_callback,
+            qos_profile)
+        
+        self.master_local_position_sub = self.create_subscription(
+            VehicleLocalPosition,
+            '/px4_1/fmu/out/local_position',
+            self.master_local_position_callback,
             qos_profile)
 
 
@@ -141,8 +148,13 @@ class OffboardControl(Node):
         self.target_position_x = 0
         self.target_position_y = 0
         self.target_position_z = 3
+        
+        self.current_position_x = 0.0
+        self.current_position_y = 0.0
+        self.current_position_z = 0.0
         self.myCnt = 0
         self.yaw = 0.0  #yaw value we send as command
+        self.local_yaw = 0.0
         self.trueYaw = 0.0  #current yaw value of drone
 
         #states with corresponding callback functions that run once when state switches
@@ -304,11 +316,12 @@ class OffboardControl(Node):
         #trueYaw is the drones current yaw value
         self.trueYaw = -(np.arctan2(2.0*(orientation_q[3]*orientation_q[0] + orientation_q[1]*orientation_q[2]), 
                             1.0 - 2.0*(orientation_q[0]*orientation_q[0] + orientation_q[1]*orientation_q[1])))
-        
     
-    
-    
-    
+    def master_local_position_callback(self, msg):
+        # 로컬 좌표계에서의 드론 위치를 받아 저장
+        self.current_position_x = msg.x
+        self.current_position_y = msg.y
+        self.current_position_z = msg.z
     
     
     #publishes command to /fmu/in/vehicle_command
@@ -348,6 +361,22 @@ class OffboardControl(Node):
     #publishes offboard control modes and velocity as trajectory setpoints
     def cmdloop_callback(self):
         if(self.offboardMode == True):
+            desired_yaw = 0.0
+            dx = self.target_position_x - self.current_position_x
+            dy = self.target_position_y - self.current_position_y
+
+            # atan2를 사용하여 목표 위치를 향한 각도 계산
+            desired_yaw = math.atan2(dy, dx)
+
+            # 현재 yaw와 목표 yaw의 차이를 계산하여, 드론이 목표 위치를 향하도록 헤딩 업데이트
+            yaw_diff = desired_yaw - self.trueYaw
+            if yaw_diff > math.pi:
+                yaw_diff -= 2 * math.pi
+            elif yaw_diff < -math.pi:
+                yaw_diff += 2 * math.pi
+
+            # 업데이트된 yaw 값을 설정
+            self.yaw = desired_yaw
             # Publish offboard control modes
             offboard_msg = OffboardControlMode()
             offboard_msg.timestamp = int(Clock().now().nanoseconds / 1000)
@@ -371,7 +400,7 @@ class OffboardControl(Node):
             trajectory_msg.acceleration[0] = float('nan')
             trajectory_msg.acceleration[1] = float('nan')
             trajectory_msg.acceleration[2] = float('nan')
-            trajectory_msg.yaw = self.yaw
+            trajectory_msg.yaw = desired_yaw
             trajectory_msg.yawspeed = float('nan')
 
             self.publisher_trajectory.publish(trajectory_msg)

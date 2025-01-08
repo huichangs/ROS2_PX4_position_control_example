@@ -15,47 +15,52 @@ class UavCamera(Node):
         
         # Create the subscriber. This subscriber will receive an Image
         # from the video_frames topic. The queue size is 10 messages.
-        self.Image_subscription = self.create_subscription(
+        self.raw_image_subscription_1 = self.create_subscription(
         Image, 
-        '/depth_camera/theora', 
-        self.get_image_callback, 
+        '/camera', 
+        self.get_raw_image_callback_1,
         qos)
-        self.Image_subscription # prevent unused variable warning
-        # Used to convert between ROS and OpenCV images
-        self.bridge = CvBridge()
         
-    # def get_image_callback(self, msg):
-    #     # Convert ROS Image message to OpenCV image
-    #     cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
-    #     # cv_image = self.bridge.imgmsg_to_cv2(msg, "16UC1")
-    #     # cv_image_visual = cv2.convertScaleAbs(cv_image, alpha=0.03)  # Scale for visualization
+        self.raw_image_subscription_2 = self.create_subscription(
+        Image, 
+        '/camera_1', 
+        self.get_raw_image_callback_2,
+        qos)
         
-    #     # Show Results
-    #     cv2.imshow("streaming", cv_image)
-    #     cv2.waitKey(1)
-    
-    def get_image_callback(self, msg):
-        decoded_frame = self.decode_theora(msg.data)
-        if decoded_frame is not None:
-            cv2.imshow("Depth Camera", decoded_frame)
-            cv2.waitKey(1)
-            
-    
-    def decode_theora(self, data):
-        # ffmpeg 또는 다른 디코딩 라이브러리를 사용하여 데이터 디코딩
-        try:
-            # ffmpeg 명령을 통해 데이터 디코딩 예시
-            process = (
-                ffmpeg
-                .input('pipe:0', format='theora')
-                .output('pipe:1', format='rawvideo', pix_fmt='bgr24')
-                .run(input=data, capture_stdout=True)
-            )
-            frame = np.frombuffer(process, np.uint8).reshape([height, width, 3])  # 프레임 크기 설정 필요
-            return frame
-        except Exception as e:
-            self.get_logger().error(f"Error decoding Theora: {e}")
-            return None
+        self.raw_image_subscription_3 = self.create_subscription(
+        Image, 
+        '/camera_2', 
+        self.get_raw_image_callback_3,
+        qos)
+        
+        self.raw_image_subscription_1
+        self.raw_image_subscription_2
+        self.raw_image_subscription_3
+        
+        
+    def get_raw_image_callback_1(self, msg):
+        # Convert ROS Image message to OpenCV image
+        cv_image_1 = CvBridge().imgmsg_to_cv2(msg, "bgr8")
+        
+        # Show Results
+        cv2.imshow("streaming_1", cv_image_1)
+        cv2.waitKey(1)
+        
+    def get_raw_image_callback_2(self, msg):
+        # Convert ROS Image message to OpenCV image
+        cv_image_2 = CvBridge().imgmsg_to_cv2(msg, "bgr8")
+        
+        # Show Results
+        # cv2.imshow("streaming_2", cv_image_2)
+        cv2.waitKey(1)
+        
+    def get_raw_image_callback_3(self, msg):
+        # Convert ROS Image message to OpenCV image
+        cv_image_3 = CvBridge().imgmsg_to_cv2(msg, "bgr8")
+        
+        # Show Results
+        # cv2.imshow("streaming_3", cv_image_3)
+        cv2.waitKey(1)
         
 def main(args=None):
     rclpy.init(args=args)
