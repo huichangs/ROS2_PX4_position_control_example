@@ -103,6 +103,8 @@ def main():
     ang_pub = node.create_publisher(geometry_msgs.msg.Twist, '/offboard_angular_cmd', qos_profile)
     arm_toggle = False
     arm_pub = node.create_publisher(std_msgs.msg.Bool, '/arm_message', qos_profile)
+    err_toggle = False
+    err_pub = node.create_publisher(std_msgs.msg.Bool, '/err_message', qos_profile)
 
 
     speed = 0.5
@@ -144,6 +146,13 @@ def main():
                 arm_msg.data = arm_toggle
                 arm_pub.publish(arm_msg)
                 print(f"Arm toggle is now: {arm_toggle}")
+            
+            if key == 'e':
+                err_toggle = not err_toggle
+                err_msg = std_msgs.msg.Bool()
+                err_msg.data = err_toggle
+                err_pub.publish(err_msg)
+                print(f'err event: {err_toggle}')
 
             twist = geometry_msgs.msg.Twist()
             yaw_val = (th * turn) + yaw_val

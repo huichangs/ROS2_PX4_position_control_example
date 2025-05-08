@@ -50,6 +50,8 @@ from px4_msgs.msg import VehicleCommand
 from px4_msgs.msg import VehicleOdometry
 from px4_msgs.msg import VehicleGlobalPosition
 from px4_msgs.msg import VehicleLocalPosition
+from px4_msgs.msg import ActuatorMotors
+from px4_msgs.msg import ActuatorServos
 from geometry_msgs.msg import Twist, Vector3, Point
 from std_msgs.msg import Bool
 
@@ -60,9 +62,9 @@ class OffboardControl(Node):
     def __init__(self):
         super().__init__('minimal_publisher')
         qos_profile = QoSProfile(
-            reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT,
-            durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL,
-            history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST,
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
+            history=QoSHistoryPolicy.KEEP_LAST,
             depth=1
         )
 
@@ -72,7 +74,7 @@ class OffboardControl(Node):
         #Create subscriptions
         self.master_status_sub = self.create_subscription(
             VehicleStatus,
-            '/px4_1/fmu/out/vehicle_status',
+            '/px4_1/fmu/out/vehicle_status_v1',
             self.master_vehicle_status_callback,
             qos_profile)
         
@@ -101,6 +103,12 @@ class OffboardControl(Node):
             self.arm_message_callback,
             qos_profile)
         
+        self.my_err_sub = self.create_subscription(
+            Bool,
+            '/err_message',
+            self.err_message_callback,
+            qos_profile)
+        
         self.master_local_position_sub = self.create_subscription(
             VehicleLocalPosition,
             '/px4_1/fmu/out/local_position',
@@ -113,6 +121,7 @@ class OffboardControl(Node):
         self.publisher_velocity = self.create_publisher(Twist, '/px4_1/fmu/in/setpoint_velocity/cmd_vel_unstamped', qos_profile)
         self.publisher_trajectory = self.create_publisher(TrajectorySetpoint, '/px4_1/fmu/in/trajectory_setpoint', qos_profile)
         self.vehicle_command_publisher_ = self.create_publisher(VehicleCommand, "/px4_1/fmu/in/vehicle_command", 10)
+        self.err_event_publisher = self.create_publisher(ActuatorMotors, '/px4_1/fmu/in/actuator_motors', qos_profile)
 
         self.slave_publishers_offboard_mode = {}
         self.slave_publishers_vehicle_command = {}
@@ -134,7 +143,8 @@ class OffboardControl(Node):
         # period is arbitrary, just should be more than 2Hz. Because live controls rely on this, a higher frequency is recommended
         # commands in cmdloop_callback won't be executed if the vehicle is not in offboard mode
         timer_period = 0.02  # seconds
-        self.timer = self.create_timer(timer_period, self.cmdloop_callback)
+        self.timer = self.create_timer(0.05, self.cmdloop_callback)
+        self.timer = self.create_timer(0.005, self.errloop_callback)
 
         self.nav_state = VehicleStatus.NAVIGATION_STATE_MAX
         self.arm_state = VehicleStatus.ARMING_STATE_ARMED
@@ -143,6 +153,7 @@ class OffboardControl(Node):
         self.offboardMode = False
         self.flightCheck = False
         self.arm_message = False
+        self.err_event = False
         self.failsafe = False
         
         self.target_position_x = 0
@@ -322,6 +333,9 @@ class OffboardControl(Node):
         self.current_position_x = msg.x
         self.current_position_y = msg.y
         self.current_position_z = msg.z
+
+    def err_message_callback(self, msg):
+        self.err_event = msg.data
     
     
     #publishes command to /fmu/in/vehicle_command
@@ -355,7 +369,15 @@ class OffboardControl(Node):
             msg.timestamp = int(Clock().now().nanoseconds / 1000)
             self.slave_publishers_vehicle_command[slave_id].publish(msg)
             
-    
+    def errloop_callback(self):
+        if(self.err_event == True):
+            self.get_logger().info(f"err_event : {self.err_event}")
+            motor_msg = ActuatorMotors()
+            motor_msg.timestamp = int(Clock().now().nanoseconds / 1000)
+ 
+            motor_msg.control[1] = float('nan')
+            
+            self.err_event_publisher.publish(motor_msg)
     
     
     #publishes offboard control modes and velocity as trajectory setpoints
