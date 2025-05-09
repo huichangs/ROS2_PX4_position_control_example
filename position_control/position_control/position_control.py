@@ -143,8 +143,8 @@ class OffboardControl(Node):
         # period is arbitrary, just should be more than 2Hz. Because live controls rely on this, a higher frequency is recommended
         # commands in cmdloop_callback won't be executed if the vehicle is not in offboard mode
         timer_period = 0.02  # seconds
-        self.timer = self.create_timer(0.05, self.cmdloop_callback)
-        self.timer = self.create_timer(0.005, self.errloop_callback)
+        self.timer = self.create_timer(0.1, self.cmdloop_callback)
+        self.timer = self.create_timer(0.001, self.errloop_callback)
 
         self.nav_state = VehicleStatus.NAVIGATION_STATE_MAX
         self.arm_state = VehicleStatus.ARMING_STATE_ARMED
@@ -375,7 +375,7 @@ class OffboardControl(Node):
             motor_msg = ActuatorMotors()
             motor_msg.timestamp = int(Clock().now().nanoseconds / 1000)
  
-            motor_msg.control[1] = float('nan')
+            motor_msg.control[0] = float('nan')
             
             self.err_event_publisher.publish(motor_msg)
     
@@ -423,9 +423,9 @@ class OffboardControl(Node):
             trajectory_msg.acceleration[1] = float('nan')
             trajectory_msg.acceleration[2] = float('nan')
             trajectory_msg.yaw = desired_yaw
-            trajectory_msg.yawspeed = float('nan')
 
             self.publisher_trajectory.publish(trajectory_msg)
+
 
 
 def main(args=None):
