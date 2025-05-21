@@ -36,6 +36,7 @@ __author__ = "Braden Wagstaff"
 __contact__ = "braden@arkelectron.com"
 
 import rclpy
+import socket
 from rclpy.node import Node
 import numpy as np
 import math
@@ -111,7 +112,7 @@ class OffboardControl(Node):
         
         self.master_local_position_sub = self.create_subscription(
             VehicleLocalPosition,
-            '/px4_1/fmu/out/local_position',
+            '/px4_1/fmu/out/vehicle_local_position',
             self.master_local_position_callback,
             qos_profile)
 
@@ -143,7 +144,7 @@ class OffboardControl(Node):
         # period is arbitrary, just should be more than 2Hz. Because live controls rely on this, a higher frequency is recommended
         # commands in cmdloop_callback won't be executed if the vehicle is not in offboard mode
         timer_period = 0.02  # seconds
-        self.timer = self.create_timer(0.1, self.cmdloop_callback)
+        self.timer = self.create_timer(0.2, self.cmdloop_callback)
         self.timer = self.create_timer(0.001, self.errloop_callback)
 
         self.nav_state = VehicleStatus.NAVIGATION_STATE_MAX
@@ -179,6 +180,14 @@ class OffboardControl(Node):
         self.current_state = "IDLE"
         self.last_state = self.current_state
 
+        # socket setup
+        # 서버 주소와 포트 설정
+        self.UDP_IP = "127.0.0.1"   # 로컬호스트
+        self.UDP_PORT = 9999
+
+        # 소켓 생성
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
 
     def arm_message_callback(self, msg):
         self.arm_message = msg.data
@@ -198,7 +207,7 @@ class OffboardControl(Node):
                 if(not(self.flightCheck)):
                     self.current_state = "IDLE"
                     self.get_logger().info(f"Arming, Flight Check Failed")
-                elif(self.arm_state == VehicleStatus.ARMING_STATE_ARMED and self.myCnt > 10):
+                elif(self.arm_state == VehicleStatus.ARMING_STATE_ARMED and self.myCnt > 5):
                     self.current_state = "TAKEOFF"
                     self.get_logger().info(f"Arming, Takeoff")
                 self.arm() #send arm command
@@ -267,9 +276,6 @@ class OffboardControl(Node):
         for i in range(2, self.num_of_drones + 1):
             self.publish_to_slave(VehicleCommand.VEHICLE_CMD_DO_SET_MODE, i, 1., 6.)
         self.offboardMode = True
-
-
-    
 
         
 
@@ -375,28 +381,30 @@ class OffboardControl(Node):
             motor_msg = ActuatorMotors()
             motor_msg.timestamp = int(Clock().now().nanoseconds / 1000)
  
-            motor_msg.control[0] = float('nan')
+            motor_msg.control[1] = float('nan')
             
             self.err_event_publisher.publish(motor_msg)
+            
+            self.sock.sendto(b"True", (self.UDP_IP, self.UDP_PORT))
+        else:
+            self.sock.sendto(b"False", (self.UDP_IP, self.UDP_PORT))
     
     
     #publishes offboard control modes and velocity as trajectory setpoints
     def cmdloop_callback(self):
         if(self.offboardMode == True):
-            desired_yaw = 0.0
-            dx = self.target_position_x - self.current_position_x
+            self.current_position_x = -self.current_position_x
+            dx = -(self.target_position_x - (self.current_position_x))
             dy = self.target_position_y - self.current_position_y
 
             # atan2를 사용하여 목표 위치를 향한 각도 계산
-            desired_yaw = math.atan2(dy, dx)
+            distance = math.sqrt(dx**2 + dy**2)
+            if distance > 0.3:  # 목표 위치와 현재 위치의 거리가 0.1m 이상일 때만 yaw 업데이트
+                desired_yaw = math.atan2(dy, dx)
+            else:
+                desired_yaw = self.yaw
 
-            # 현재 yaw와 목표 yaw의 차이를 계산하여, 드론이 목표 위치를 향하도록 헤딩 업데이트
-            yaw_diff = desired_yaw - self.trueYaw
-            if yaw_diff > math.pi:
-                yaw_diff -= 2 * math.pi
-            elif yaw_diff < -math.pi:
-                yaw_diff += 2 * math.pi
-
+            
             # 업데이트된 yaw 값을 설정
             self.yaw = desired_yaw
             # Publish offboard control modes
@@ -422,7 +430,7 @@ class OffboardControl(Node):
             trajectory_msg.acceleration[0] = float('nan')
             trajectory_msg.acceleration[1] = float('nan')
             trajectory_msg.acceleration[2] = float('nan')
-            trajectory_msg.yaw = desired_yaw
+            trajectory_msg.yaw = float(desired_yaw)
 
             self.publisher_trajectory.publish(trajectory_msg)
 

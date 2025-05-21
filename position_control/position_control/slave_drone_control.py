@@ -197,16 +197,16 @@ class SlaveDroneControl(Node):
         
         trajectory_msg = TrajectorySetpoint()
         trajectory_msg.timestamp = int(Clock().now().nanoseconds / 1000)
-        trajectory_msg.velocity[0] = float("nan")
-        trajectory_msg.velocity[1] = float("nan")
-        trajectory_msg.velocity[2] = float("nan")
+        # trajectory_msg.velocity[0] = float("nan")
+        # trajectory_msg.velocity[1] = float("nan")
+        # trajectory_msg.velocity[2] = float("nan")
         trajectory_msg.position[0] = slave_target_x
         trajectory_msg.position[1] = slave_target_y
         trajectory_msg.position[2] = self.master_curr_position_z
-        trajectory_msg.acceleration[0] = float("nan")
-        trajectory_msg.acceleration[1] = float("nan")
-        trajectory_msg.acceleration[2] = float("nan")
-        trajectory_msg.yaw = float("nan")
+        # trajectory_msg.acceleration[0] = float("nan")
+        # trajectory_msg.acceleration[1] = float("nan")
+        # trajectory_msg.acceleration[2] = float("nan")
+        # trajectory_msg.yaw = float("nan")
 
         self.slave_trajectory_publisher[2].publish(trajectory_msg)
     

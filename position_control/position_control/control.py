@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys
 
+import random
 import geometry_msgs.msg
 import rclpy
 import std_msgs.msg
@@ -22,6 +23,8 @@ W: Up
 S: Down
 A: Yaw Left
 D: Yaw Right
+E: Error
+R: Generate random target position
 Up Arrow: Pitch Forward
 Down Arrow: Pitch Backward
 Left Arrow: Roll Left
@@ -153,6 +156,13 @@ def main():
                 err_msg.data = err_toggle
                 err_pub.publish(err_msg)
                 print(f'err event: {err_toggle}')
+            
+            if key == 'r':
+                # 랜덤 위치 생성
+                x_val = random.uniform(0, 100)
+                y_val = random.uniform(0, 100)
+                z_val = random.uniform(0, 50)
+                print(f"Generated random target position: X={x_val}, Y={y_val}, Z={z_val}")
 
             twist = geometry_msgs.msg.Twist()
             yaw_val = (th * turn) + yaw_val

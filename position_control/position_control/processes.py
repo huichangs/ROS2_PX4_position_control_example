@@ -18,6 +18,9 @@ commands = [
     "cd ~/PX4-Autopilot && PX4_SYS_AUTOSTART=4002 PX4_SIM_MODEL=gz_x500_depth ./build/px4_sitl_default/bin/px4 -i 1",
     "cd ~/PX4-Autopilot && PX4_SYS_AUTOSTART=4002 PX4_GZ_MODEL_POSE='0,-2' PX4_SIM_MODEL=gz_x500_depth_1 ./build/px4_sitl_default/bin/px4 -i 2",
     "cd ~/PX4-Autopilot && PX4_SYS_AUTOSTART=4002 PX4_GZ_MODEL_POSE='0,2' PX4_SIM_MODEL=gz_x500_depth_2 ./build/px4_sitl_default/bin/px4 -i 3"
+
+    # motor failure gazebo topic
+    "gz topic -p /gazebo/motor_failure_num -m 'data: 0'"
 ]
 
 # Loop through each command in the list
