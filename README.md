@@ -147,20 +147,14 @@ Run this code to start the example
 ros2 launch position_control offboard_position_control.launch.py
 ```
 
-This will run numerous things. In no particular order, it will run:
+### Error generate using gz topic
+You can occur error using gz topic in gazebo-classic. if you use gazebo harmonic, you should change your simulator to gazebo-classic. Please follow this link https://docs.px4.io/main/en/sim_gazebo_classic/ 
 
-* processes.py in a new window
-   * MicroDDS in a new terminal window
-   * Gazebo will open in a second tab in the same terminal window
-      * Gazebo GUI will open in it's own window
-* control.py in a new window
-   * Sends ROS2 Teleop commands
-* RVIZ will open in a new window
-* position_control.py runs as it's own node, and is the main node of this example
+Then, run this code another terminal
 
+```
+gz topic -p /gazebo/motor_failure_num -m 'data: 1'
+```
 
-## Closing Simulation *IMPORTANT*
-When closing the simulation, it is very tempting to just close the terminal windows. However, this will leave Gazebo running in the background, potentially causing issues when you run Gazebo in the future. To correctly end the Gazebo simulation, go to it's terminal window and click *Ctrl+C*. This will close Gazebo and all of it's child processes. Then, you can close the other terminal windows.
- 
-
-
+### gazebo_controller
+Don't execute 2 files in gazebo_controller. These can break gazebo-classic. If you run these file, you have to reboot your computer.
