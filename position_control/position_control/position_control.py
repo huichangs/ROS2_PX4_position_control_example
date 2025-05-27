@@ -40,6 +40,7 @@ import socket
 from rclpy.node import Node
 import numpy as np
 import math
+import random
 from rclpy.clock import Clock
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 
@@ -110,6 +111,12 @@ class OffboardControl(Node):
             self.err_message_callback,
             qos_profile)
         
+        self.my_random_sub = self.create_subscription(
+            Bool,
+            '/random_message',
+            self.random_message_callback,
+            qos_profile)
+        
         self.master_local_position_sub = self.create_subscription(
             VehicleLocalPosition,
             '/px4_1/fmu/out/vehicle_local_position',
@@ -155,6 +162,7 @@ class OffboardControl(Node):
         self.flightCheck = False
         self.arm_message = False
         self.err_event = False
+        self.random_event = False
         self.failsafe = False
         
         self.target_position_x = 0
@@ -168,6 +176,8 @@ class OffboardControl(Node):
         self.yaw = 0.0  #yaw value we send as command
         self.local_yaw = 0.0
         self.trueYaw = 0.0  #current yaw value of drone
+        
+        self.last_position_update_time = self.get_clock().now().seconds_nanoseconds()[0]
 
         #states with corresponding callback functions that run once when state switches
         self.states = {
@@ -342,6 +352,9 @@ class OffboardControl(Node):
 
     def err_message_callback(self, msg):
         self.err_event = msg.data
+
+    def random_message_callback(self, msg):
+        self.random_event = msg.data
     
     
     #publishes command to /fmu/in/vehicle_command
@@ -392,21 +405,8 @@ class OffboardControl(Node):
     
     #publishes offboard control modes and velocity as trajectory setpoints
     def cmdloop_callback(self):
-        if(self.offboardMode == True):
-            self.current_position_x = -self.current_position_x
-            dx = -(self.target_position_x - (self.current_position_x))
-            dy = self.target_position_y - self.current_position_y
-
-            # atan2를 사용하여 목표 위치를 향한 각도 계산
-            distance = math.sqrt(dx**2 + dy**2)
-            if distance > 0.3:  # 목표 위치와 현재 위치의 거리가 0.1m 이상일 때만 yaw 업데이트
-                desired_yaw = math.atan2(dy, dx)
-            else:
-                desired_yaw = self.yaw
-
-            
-            # 업데이트된 yaw 값을 설정
-            self.yaw = desired_yaw
+        if self.offboardMode == True:
+            now_sec = self.get_clock().now().seconds_nanoseconds()[0]
             # Publish offboard control modes
             offboard_msg = OffboardControlMode()
             offboard_msg.timestamp = int(Clock().now().nanoseconds / 1000)
@@ -417,22 +417,66 @@ class OffboardControl(Node):
             for i in range(2, self.num_of_drones + 1):
                 self.slave_publishers_offboard_mode[i].publish(offboard_msg)
 
-            
             # Create and publish TrajectorySetpoint message with NaN values for position and acceleration
-            trajectory_msg = TrajectorySetpoint()
-            trajectory_msg.timestamp = int(Clock().now().nanoseconds / 1000)
-            trajectory_msg.velocity[0] = float('nan')
-            trajectory_msg.velocity[1] = float('nan')
-            trajectory_msg.velocity[2] = float('nan')
-            trajectory_msg.position[0] = -self.target_position_x
-            trajectory_msg.position[1] = self.target_position_y
-            trajectory_msg.position[2] = -self.target_position_z
-            trajectory_msg.acceleration[0] = float('nan')
-            trajectory_msg.acceleration[1] = float('nan')
-            trajectory_msg.acceleration[2] = float('nan')
-            trajectory_msg.yaw = float(desired_yaw)
+            if self.random_event == True:
+                self.current_position_x = -self.current_position_x
+                dx = -(self.target_position_x - (self.current_position_x))
+                dy = self.target_position_y - self.current_position_y
 
-            self.publisher_trajectory.publish(trajectory_msg)
+                    # atan2를 사용하여 목표 위치를 향한 각도 계산
+                distance = math.sqrt(dx**2 + dy**2)
+                if distance > 0.3:  # 목표 위치와 현재 위치의 거리가 0.1m 이상일 때만 yaw 업데이트
+                    desired_yaw = math.atan2(dy, dx)
+                else:
+                    desired_yaw = self.yaw
+
+                # 업데이트된 yaw 값을 설정
+                self.yaw = desired_yaw
+
+                if now_sec - self.last_position_update_time >= 5:
+                    self.target_position_x = random.uniform(-1000, 1000)
+                    self.target_position_y = random.uniform(-1000, 1000)
+                    self.target_position_z = -random.uniform(5, 100)  # NED 기준 z는 음수
+                    self.last_position_update_time = now_sec
+                    self.get_logger().info(f"[New Target] x={self.target_position_x:.2f}, y={self.target_position_y:.2f}, z={self.target_position_z:.2f}")
+
+                    trajectory_msg = TrajectorySetpoint()
+                    trajectory_msg.timestamp = int(Clock().now().nanoseconds / 1000)
+                    trajectory_msg.position[0] = self.target_position_x
+                    trajectory_msg.position[1] = self.target_position_y
+                    trajectory_msg.position[2] = self.target_position_z
+                    trajectory_msg.yaw = float(desired_yaw)
+                    self.publisher_trajectory.publish(trajectory_msg)
+            else:
+                self.current_position_x = -self.current_position_x
+                dx = -(self.target_position_x - (self.current_position_x))
+                dy = self.target_position_y - self.current_position_y
+
+                # atan2를 사용하여 목표 위치를 향한 각도 계산
+                distance = math.sqrt(dx**2 + dy**2)
+                if distance > 0.3:  # 목표 위치와 현재 위치의 거리가 0.1m 이상일 때만 yaw 업데이트
+                    desired_yaw = math.atan2(dy, dx)
+                else:
+                    desired_yaw = self.yaw
+
+                
+                # 업데이트된 yaw 값을 설정
+                self.yaw = desired_yaw
+                
+                trajectory_msg = TrajectorySetpoint()
+                trajectory_msg.timestamp = int(Clock().now().nanoseconds / 1000)
+                trajectory_msg.velocity[0] = float('nan')
+                trajectory_msg.velocity[1] = float('nan')
+                trajectory_msg.velocity[2] = float('nan')
+                trajectory_msg.position[0] = -self.target_position_x
+                trajectory_msg.position[1] = self.target_position_y
+                trajectory_msg.position[2] = -self.target_position_z
+                trajectory_msg.acceleration[0] = float('nan')
+                trajectory_msg.acceleration[1] = float('nan')
+                trajectory_msg.acceleration[2] = float('nan')
+                trajectory_msg.yaw = float(desired_yaw)
+
+                self.publisher_trajectory.publish(trajectory_msg)
 
 
 

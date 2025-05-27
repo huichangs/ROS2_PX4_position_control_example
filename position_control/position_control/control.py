@@ -108,6 +108,8 @@ def main():
     arm_pub = node.create_publisher(std_msgs.msg.Bool, '/arm_message', qos_profile)
     err_toggle = False
     err_pub = node.create_publisher(std_msgs.msg.Bool, '/err_message', qos_profile)
+    random_toggle = False
+    random_pub = node.create_publisher(std_msgs.msg.Bool, '/random_message', qos_profile)
 
 
     speed = 0.5
@@ -159,10 +161,11 @@ def main():
             
             if key == 'r':
                 # 랜덤 위치 생성
-                x_val = random.uniform(0, 100)
-                y_val = random.uniform(0, 100)
-                z_val = random.uniform(0, 50)
-                print(f"Generated random target position: X={x_val}, Y={y_val}, Z={z_val}")
+                random_toggle = not random_toggle
+                random_msg = std_msgs.msg.Bool()
+                random_msg.data = random_toggle
+                random_pub.publish(random_msg)
+                print(f'random event: {random_toggle}')
 
             twist = geometry_msgs.msg.Twist()
             yaw_val = (th * turn) + yaw_val
